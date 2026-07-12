@@ -1,7 +1,10 @@
+import json
+
 import httpx
 
 from app.core.config import settings
-from app.schemas.ai import AIChatRequest
+from app.schemas.ai import AIChatRequest, AIChatStructuredOutput
+from app.schemas.board import BoardPayload
 
 
 class AIConfigurationError(ValueError):
@@ -16,7 +19,7 @@ class AIService:
     def __init__(self, timeout_seconds: float = 30.0):
         self.timeout_seconds = timeout_seconds
 
-    def chat(self, payload: AIChatRequest) -> str:
+    def chat(self, payload: AIChatRequest, board: BoardPayload) -> AIChatStructuredOutput:
         api_key = (settings.openrouter_api_key or "").strip()
         if not api_key:
             raise AIConfigurationError(
@@ -24,7 +27,17 @@ class AIService:
             )
 
         messages = [message.model_dump() for message in payload.conversation]
-        messages.append({"role": "user", "content": payload.question})
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "User question:\n"
+                    f"{payload.question}\n\n"
+                    "Current Kanban board JSON:\n"
+                    f"{json.dumps(board.model_dump(), ensure_ascii=True)}"
+                ),
+            }
+        )
 
         try:
             response = httpx.post(
@@ -37,6 +50,14 @@ class AIService:
                     "model": settings.openrouter_model,
                     "messages": messages,
                     "temperature": 0,
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "kanban_chat_response",
+                            "strict": True,
+                            "schema": AIChatStructuredOutput.model_json_schema(),
+                        },
+                    },
                 },
                 timeout=self.timeout_seconds,
             )
@@ -61,4 +82,20 @@ class AIService:
         if not isinstance(content, str) or not content.strip():
             raise AIProviderError("OpenRouter response content was empty.")
 
-        return content.strip()
+        return parse_structured_output(content.strip())
+
+
+def parse_structured_output(content: str) -> AIChatStructuredOutput:
+    try:
+        decoded = json.loads(content)
+    except json.JSONDecodeError as error:
+        raise AIProviderError(
+            "OpenRouter response did not match expected structured JSON output."
+        ) from error
+
+    try:
+        return AIChatStructuredOutput.model_validate(decoded)
+    except Exception as error:
+        raise AIProviderError(
+            "OpenRouter structured output was invalid for the expected response schema."
+        ) from error

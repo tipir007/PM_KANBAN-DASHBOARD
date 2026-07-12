@@ -78,8 +78,8 @@ This section keeps the original 10-part outline and adds concrete execution deta
 
 ### Implementation status (current)
 
-- Completed: Parts 1, 2, 3, 4, 5, 6, 7, 8.
-- In progress: Part 9 onward not started.
+- Completed: Parts 1, 2, 3, 4, 5, 6, 7, 8, 9.
+- In progress: Part 10 not started.
 - Completed supporting docs:
   - `backend/AGENTS.md`
   - `frontend/AGENTS.md`
@@ -222,10 +222,10 @@ Success criteria
 #### Part 9: Structured AI board operations
 
 Checklist
-- [ ] Send board JSON + user question + conversation history to LLM.
-- [ ] Require structured response containing assistant text and optional board patch/update payload.
-- [ ] Validate and sanitize AI structured output before persistence.
-- [ ] Apply valid board updates atomically.
+- [x] Send board JSON + user question + conversation history to LLM.
+- [x] Require structured response containing assistant text and optional board patch/update payload.
+- [x] Validate and sanitize AI structured output before persistence.
+- [x] Apply valid board updates atomically.
 
 Tests
 - Unit tests for structured-output parser/validator.

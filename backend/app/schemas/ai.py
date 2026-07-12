@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.board import BoardPayload
+
 
 class ChatMessage(BaseModel):
     role: Literal["system", "user", "assistant"]
@@ -16,4 +18,9 @@ class AIChatRequest(BaseModel):
 
 class AIChatResponse(BaseModel):
     response: str
-    board_update: dict | None = None
+    board_update: BoardPayload | None = None
+
+
+class AIChatStructuredOutput(BaseModel):
+    response: str = Field(min_length=1)
+    board_update: BoardPayload | None = None

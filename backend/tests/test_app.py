@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,16 @@ from fastapi.testclient import TestClient
 from app.core.config import settings
 from app.db.bootstrap import init_database
 from app.main import app
+
+
+class _FakeOpenRouterResponse:
+    def __init__(self, status_code: int, body: dict):
+        self.status_code = status_code
+        self._body = body
+        self.text = json.dumps(body)
+
+    def json(self) -> dict:
+        return self._body
 
 
 @pytest.fixture
@@ -112,6 +123,130 @@ def test_ai_chat_returns_runtime_error_when_api_key_missing(client: TestClient) 
 
     assert response.status_code == 503
     assert "OPENROUTER_API_KEY" in response.json()["detail"]
+
+
+def test_ai_chat_response_only_path_uses_structured_output(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    captured_request: dict = {}
+
+    def fake_openrouter_post(url: str, headers: dict, json: dict, timeout: float) -> _FakeOpenRouterResponse:
+        captured_request["url"] = url
+        captured_request["headers"] = headers
+        captured_request["json"] = json
+        captured_request["timeout"] = timeout
+        return _FakeOpenRouterResponse(
+            200,
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"response":"No board change needed","board_update":null}'
+                        }
+                    }
+                ]
+            },
+        )
+
+    monkeypatch.setattr("app.services.ai_service.httpx.post", fake_openrouter_post)
+
+    original_key = settings.openrouter_api_key
+    settings.openrouter_api_key = "test-key"
+    try:
+        response = client.post(
+            "/api/ai/chat",
+            json={
+                "username": "user",
+                "question": "Summarize board status.",
+                "conversation": [{"role": "assistant", "content": "Previous response"}],
+            },
+        )
+    finally:
+        settings.openrouter_api_key = original_key
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["response"] == "No board change needed"
+    assert payload["board_update"] is None
+    assert captured_request["json"]["messages"][0]["content"] == "Previous response"
+    assert "Current Kanban board JSON" in captured_request["json"]["messages"][-1]["content"]
+
+
+def test_ai_chat_valid_board_update_path_persists_changes(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    updated_board = {
+        "columns": [{"id": "todo", "title": "Todo", "cardIds": ["card-1"]}],
+        "cards": {"card-1": {"id": "card-1", "title": "AI task", "details": "Created by AI"}},
+    }
+
+    def fake_openrouter_post(url: str, headers: dict, json: dict, timeout: float) -> _FakeOpenRouterResponse:
+        return _FakeOpenRouterResponse(
+            200,
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json_module.dumps(
+                                {"response": "Applied update", "board_update": updated_board}
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    # Keep a stable alias to avoid shadowing the `json` argument in fake_openrouter_post.
+    json_module = json
+    monkeypatch.setattr("app.services.ai_service.httpx.post", fake_openrouter_post)
+
+    original_key = settings.openrouter_api_key
+    settings.openrouter_api_key = "test-key"
+    try:
+        response = client.post(
+            "/api/ai/chat",
+            json={
+                "username": "user",
+                "question": "Move one task into Todo.",
+                "conversation": [],
+            },
+        )
+    finally:
+        settings.openrouter_api_key = original_key
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["response"] == "Applied update"
+    assert payload["board_update"] == updated_board
+
+    board_response = client.get("/api/board?username=user")
+    assert board_response.status_code == 200
+    assert board_response.json()["board"] == updated_board
+
+
+def test_ai_chat_rejects_invalid_structured_output(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_openrouter_post(url: str, headers: dict, json: dict, timeout: float) -> _FakeOpenRouterResponse:
+        return _FakeOpenRouterResponse(
+            200,
+            {"choices": [{"message": {"content": "This is not JSON structured output"}}]},
+        )
+
+    monkeypatch.setattr("app.services.ai_service.httpx.post", fake_openrouter_post)
+
+    original_key = settings.openrouter_api_key
+    settings.openrouter_api_key = "test-key"
+    try:
+        response = client.post(
+            "/api/ai/chat",
+            json={
+                "username": "user",
+                "question": "Do anything you want.",
+                "conversation": [],
+            },
+        )
+    finally:
+        settings.openrouter_api_key = original_key
+
+    assert response.status_code == 502
+    assert "structured JSON output" in response.json()["detail"]
 
 
 def test_ai_chat_live_connectivity_returns_model_answer(client: TestClient) -> None:
