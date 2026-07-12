@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -13,11 +13,16 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
+import { fetchBoard, updateBoard } from "@/lib/api";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
 
 export const KanbanBoard = () => {
   const [board, setBoard] = useState<BoardData>(() => initialData);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -27,8 +32,94 @@ export const KanbanBoard = () => {
 
   const cardsById = useMemo(() => board.cards, [board.cards]);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadBoard = async () => {
+      try {
+        const remoteBoard = await fetchBoard();
+        if (active) {
+          setBoard(remoteBoard);
+          setLoadError(null);
+        }
+      } catch {
+        if (active) {
+          setLoadError("Unable to load board from backend. Using local data.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadBoard();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const applyBoardUpdate = (nextBoard: BoardData) => {
+    setBoard(nextBoard);
+    setIsSaving(true);
+    setSaveError(null);
+    void updateBoard(nextBoard)
+      .catch(() => {
+        setSaveError("Failed to save board changes.");
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveCardId(event.active.id as string);
+  };
+
+  const handleRenameColumn = (columnId: string, title: string) => {
+    const nextBoard = {
+      ...board,
+      columns: board.columns.map((column) =>
+        column.id === columnId ? { ...column, title } : column
+      ),
+    };
+    applyBoardUpdate(nextBoard);
+  };
+
+  const handleAddCard = (columnId: string, title: string, details: string) => {
+    const id = createId("card");
+    const nextBoard = {
+      ...board,
+      cards: {
+        ...board.cards,
+        [id]: { id, title, details: details || "No details yet." },
+      },
+      columns: board.columns.map((column) =>
+        column.id === columnId
+          ? { ...column, cardIds: [...column.cardIds, id] }
+          : column
+      ),
+    };
+    applyBoardUpdate(nextBoard);
+  };
+
+  const handleDeleteCard = (columnId: string, cardId: string) => {
+    const nextBoard = {
+      ...board,
+      cards: Object.fromEntries(
+        Object.entries(board.cards).filter(([id]) => id !== cardId)
+      ),
+      columns: board.columns.map((column) =>
+        column.id === columnId
+          ? {
+              ...column,
+              cardIds: column.cardIds.filter((id) => id !== cardId),
+            }
+          : column
+      ),
+    };
+    applyBoardUpdate(nextBoard);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -39,57 +130,22 @@ export const KanbanBoard = () => {
       return;
     }
 
-    setBoard((prev) => ({
-      ...prev,
-      columns: moveCard(prev.columns, active.id as string, over.id as string),
-    }));
-  };
-
-  const handleRenameColumn = (columnId: string, title: string) => {
-    setBoard((prev) => ({
-      ...prev,
-      columns: prev.columns.map((column) =>
-        column.id === columnId ? { ...column, title } : column
-      ),
-    }));
-  };
-
-  const handleAddCard = (columnId: string, title: string, details: string) => {
-    const id = createId("card");
-    setBoard((prev) => ({
-      ...prev,
-      cards: {
-        ...prev.cards,
-        [id]: { id, title, details: details || "No details yet." },
-      },
-      columns: prev.columns.map((column) =>
-        column.id === columnId
-          ? { ...column, cardIds: [...column.cardIds, id] }
-          : column
-      ),
-    }));
-  };
-
-  const handleDeleteCard = (columnId: string, cardId: string) => {
-    setBoard((prev) => {
-      return {
-        ...prev,
-        cards: Object.fromEntries(
-          Object.entries(prev.cards).filter(([id]) => id !== cardId)
-        ),
-        columns: prev.columns.map((column) =>
-          column.id === columnId
-            ? {
-                ...column,
-                cardIds: column.cardIds.filter((id) => id !== cardId),
-              }
-            : column
-        ),
-      };
-    });
+    const nextBoard = {
+      ...board,
+      columns: moveCard(board.columns, active.id as string, over.id as string),
+    };
+    applyBoardUpdate(nextBoard);
   };
 
   const activeCard = activeCardId ? cardsById[activeCardId] : null;
+
+  if (isLoading) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-center px-6 py-12">
+        <p className="text-sm font-medium text-[var(--gray-text)]">Loading board...</p>
+      </main>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden">
@@ -97,6 +153,28 @@ export const KanbanBoard = () => {
       <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
 
       <main className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col gap-10 px-6 pb-16 pt-12">
+        {loadError ? (
+          <p
+            role="status"
+            className="rounded-xl border border-[var(--accent-yellow)] bg-white px-4 py-3 text-sm text-[var(--navy-dark)]"
+          >
+            {loadError}
+          </p>
+        ) : null}
+
+        {saveError ? (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {saveError}
+          </p>
+        ) : null}
+
+        {isSaving ? (
+          <p className="text-sm font-medium text-[var(--gray-text)]">Saving changes...</p>
+        ) : null}
+
         <header className="flex flex-col gap-6 rounded-[32px] border border-[var(--stroke)] bg-white/80 p-8 shadow-[var(--shadow)] backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>

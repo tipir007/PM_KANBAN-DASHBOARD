@@ -1,17 +1,45 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { initialData } from "@/lib/kanban";
 
 const getFirstColumn = () => screen.getAllByTestId(/column-/i)[0];
 
+beforeEach(() => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
+    const method = init?.method ?? "GET";
+    if (method === "PUT") {
+      const board = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ username: "user", board }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({ username: "user", board: initialData }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("KanbanBoard", () => {
-  it("renders five columns", () => {
+  it("renders five columns", async () => {
     render(<KanbanBoard />);
-    expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
+    expect(await screen.findAllByTestId(/column-/i)).toHaveLength(5);
   });
 
   it("renames a column", async () => {
     render(<KanbanBoard />);
+    await screen.findByRole("heading", { name: /kanban studio/i });
     const column = getFirstColumn();
     const input = within(column).getByLabelText("Column title");
     await userEvent.clear(input);
@@ -21,6 +49,7 @@ describe("KanbanBoard", () => {
 
   it("adds and removes a card", async () => {
     render(<KanbanBoard />);
+    await screen.findByRole("heading", { name: /kanban studio/i });
     const column = getFirstColumn();
     const addButton = within(column).getByRole("button", {
       name: /add a card/i,
