@@ -14,7 +14,8 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
-import { fetchBoard, updateBoard } from "@/lib/api";
+import { AIChatSidebar } from "@/components/AIChatSidebar";
+import { fetchBoard, updateBoard, type ChatMessage } from "@/lib/api";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
 
 export const KanbanBoard = () => {
@@ -24,6 +25,7 @@ export const KanbanBoard = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const lastOverIdRef = useRef<string | null>(null);
 
   const sensors = useSensors(
@@ -73,6 +75,11 @@ export const KanbanBoard = () => {
       .finally(() => {
         setIsSaving(false);
       });
+  };
+
+  const handleBoardUpdateFromAI = (nextBoard: BoardData) => {
+    setBoard(nextBoard);
+    setSaveError(null);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -223,33 +230,41 @@ export const KanbanBoard = () => {
           </div>
         </header>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <section className="grid gap-6 lg:grid-cols-5">
-            {board.columns.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                cards={column.cardIds.map((cardId) => board.cards[cardId])}
-                onRename={handleRenameColumn}
-                onAddCard={handleAddCard}
-                onDeleteCard={handleDeleteCard}
-              />
-            ))}
-          </section>
-          <DragOverlay>
-            {activeCard ? (
-              <div className="w-[260px]">
-                <KanbanCardPreview card={activeCard} />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+        <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,4fr)_minmax(320px,1fr)]">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <section className="grid gap-6 lg:grid-cols-5">
+              {board.columns.map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  cards={column.cardIds.map((cardId) => board.cards[cardId])}
+                  onRename={handleRenameColumn}
+                  onAddCard={handleAddCard}
+                  onDeleteCard={handleDeleteCard}
+                />
+              ))}
+            </section>
+            <DragOverlay>
+              {activeCard ? (
+                <div className="w-[260px]">
+                  <KanbanCardPreview card={activeCard} />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+
+          <AIChatSidebar
+            messages={chatMessages}
+            onMessagesChange={setChatMessages}
+            onBoardUpdateFromAI={handleBoardUpdateFromAI}
+          />
+        </section>
       </main>
     </div>
   );

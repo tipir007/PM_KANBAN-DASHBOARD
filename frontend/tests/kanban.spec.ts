@@ -46,3 +46,36 @@ test("moves a card between columns", async ({ page }) => {
   await page.mouse.up();
   await expect(targetColumn.getByTestId("card-card-1")).toBeVisible();
 });
+
+test("AI chat updates board and refreshes UI", async ({ page }) => {
+  await page.route("**/api/ai/chat", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        response: "Added a card in backlog.",
+        board_update: {
+          columns: [{ id: "col-backlog", title: "Backlog", cardIds: ["card-ai"] }],
+          cards: {
+            "card-ai": {
+              id: "card-ai",
+              title: "AI Playwright task",
+              details: "Inserted by mocked AI",
+            },
+          },
+        },
+      }),
+    });
+  });
+
+  await login(page);
+  await page.getByLabel("Ask AI about your board").fill("Add one task to backlog");
+  await page.getByRole("button", { name: "Send" }).click();
+
+  await expect(page.getByText("Added a card in backlog.")).toBeVisible();
+  await expect(page.getByText("AI Playwright task")).toBeVisible();
+});

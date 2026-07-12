@@ -78,8 +78,8 @@ This section keeps the original 10-part outline and adds concrete execution deta
 
 ### Implementation status (current)
 
-- Completed: Parts 1, 2, 3, 4, 5, 6, 7, 8, 9.
-- In progress: Part 10 not started.
+- Completed: Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10.
+- In progress: None.
 - Completed supporting docs:
   - `backend/AGENTS.md`
   - `frontend/AGENTS.md`
@@ -241,10 +241,10 @@ Success criteria
 #### Part 10: Sidebar AI chat UX
 
 Checklist
-- [ ] Add sidebar chat UI connected to backend AI endpoint.
-- [ ] Display conversation history and responses.
-- [ ] When AI returns board updates, refresh board state automatically.
-- [ ] Keep UX aligned with project color scheme.
+- [x] Add sidebar chat UI connected to backend AI endpoint.
+- [x] Display conversation history and responses.
+- [x] When AI returns board updates, refresh board state automatically.
+- [x] Keep UX aligned with project color scheme.
 
 Tests
 - Frontend component tests for chat interactions and rendering.

@@ -5,6 +5,22 @@ type BoardResponse = {
   board: BoardData;
 };
 
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type AIChatRequest = {
+  username: string;
+  question: string;
+  conversation: ChatMessage[];
+};
+
+export type AIChatResponse = {
+  response: string;
+  board_update: BoardData | null;
+};
+
 const buildUrl = (username: string) =>
   `/api/board?${new URLSearchParams({ username }).toString()}`;
 
@@ -43,4 +59,22 @@ export const updateBoard = async (
   if (!response.ok) {
     throw new Error(await readError(response));
   }
+};
+
+export const chatWithAI = async (
+  payload: AIChatRequest
+): Promise<AIChatResponse> => {
+  const response = await fetch("/api/ai/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return (await response.json()) as AIChatResponse;
 };

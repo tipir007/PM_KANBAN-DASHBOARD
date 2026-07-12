@@ -5,10 +5,27 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import { initialData } from "@/lib/kanban";
 
 const getFirstColumn = () => screen.getAllByTestId(/column-/i)[0];
+const readPath = (input: RequestInfo | URL) =>
+  typeof input === "string"
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input.url;
 
 beforeEach(() => {
-  vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const method = init?.method ?? "GET";
+    const path = readPath(input);
+    if (method === "POST" && path.includes("/api/ai/chat")) {
+      return new Response(
+        JSON.stringify({ response: "AI reply", board_update: null }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     if (method === "PUT") {
       const board = JSON.parse(String(init?.body));
       return new Response(JSON.stringify({ username: "user", board }), {
@@ -71,5 +88,106 @@ describe("KanbanBoard", () => {
     await userEvent.click(deleteButton);
 
     expect(within(column).queryByText("New card")).not.toBeInTheDocument();
+  });
+
+  it("sends chat messages and shows AI response", async () => {
+    render(<KanbanBoard />);
+    await screen.findByRole("heading", { name: /kanban studio/i });
+
+    const chatInput = screen.getByLabelText(/ask ai about your board/i);
+    await userEvent.type(chatInput, "Help me plan this sprint.");
+    await userEvent.click(screen.getByRole("button", { name: /^send$/i }));
+
+    expect(await screen.findByText("Help me plan this sprint.")).toBeInTheDocument();
+    expect(await screen.findByText("AI reply")).toBeInTheDocument();
+  });
+
+  it("applies AI board updates to the visible board", async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockImplementation(async (input, init) => {
+      const method = init?.method ?? "GET";
+      const path = readPath(input);
+      if (method === "POST" && path.includes("/api/ai/chat")) {
+        return new Response(
+          JSON.stringify({
+            response: "Updated.",
+            board_update: {
+              columns: [{ id: "col-backlog", title: "Backlog", cardIds: ["card-ai"] }],
+              cards: {
+                "card-ai": {
+                  id: "card-ai",
+                  title: "AI generated task",
+                  details: "From assistant",
+                },
+              },
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (method === "PUT") {
+        const board = JSON.parse(String(init?.body));
+        return new Response(JSON.stringify({ username: "user", board }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ username: "user", board: initialData }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    });
+
+    render(<KanbanBoard />);
+    await screen.findByRole("heading", { name: /kanban studio/i });
+
+    await userEvent.type(screen.getByLabelText(/ask ai about your board/i), "Update board");
+    await userEvent.click(screen.getByRole("button", { name: /^send$/i }));
+
+    expect(await screen.findByText("AI generated task")).toBeInTheDocument();
+  });
+
+  it("shows AI error message when chat request fails", async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockImplementation(async (input, init) => {
+      const method = init?.method ?? "GET";
+      const path = readPath(input);
+      if (method === "POST" && path.includes("/api/ai/chat")) {
+        return new Response(JSON.stringify({ detail: "AI unavailable" }), {
+          status: 502,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (method === "PUT") {
+        const board = JSON.parse(String(init?.body));
+        return new Response(JSON.stringify({ username: "user", board }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(
+        JSON.stringify({ username: "user", board: initialData }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    });
+
+    render(<KanbanBoard />);
+    await screen.findByRole("heading", { name: /kanban studio/i });
+
+    await userEvent.type(screen.getByLabelText(/ask ai about your board/i), "Any updates?");
+    await userEvent.click(screen.getByRole("button", { name: /^send$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("AI unavailable");
   });
 });
