@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  type DragOverEvent,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -23,6 +24,7 @@ export const KanbanBoard = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const lastOverIdRef = useRef<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -74,7 +76,14 @@ export const KanbanBoard = () => {
   };
 
   const handleDragStart = (event: DragStartEvent) => {
+    lastOverIdRef.current = null;
     setActiveCardId(event.active.id as string);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    if (event.over?.id) {
+      lastOverIdRef.current = String(event.over.id);
+    }
   };
 
   const handleRenameColumn = (columnId: string, title: string) => {
@@ -126,13 +135,16 @@ export const KanbanBoard = () => {
     const { active, over } = event;
     setActiveCardId(null);
 
-    if (!over || active.id === over.id) {
+    const targetId = over ? String(over.id) : lastOverIdRef.current;
+    lastOverIdRef.current = null;
+
+    if (!targetId || String(active.id) === targetId) {
       return;
     }
 
     const nextBoard = {
       ...board,
-      columns: moveCard(board.columns, active.id as string, over.id as string),
+      columns: moveCard(board.columns, String(active.id), targetId),
     };
     applyBoardUpdate(nextBoard);
   };
@@ -215,6 +227,7 @@ export const KanbanBoard = () => {
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <section className="grid gap-6 lg:grid-cols-5">
