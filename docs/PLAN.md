@@ -45,6 +45,9 @@ This section keeps the original 10-part outline and adds concrete execution deta
 - Locked decisions from planning review:
   - Database model: normalized SQLite tables for users/boards/columns/cards, with optional JSON metadata fields where useful.
   - AI testing: CI uses mocked OpenRouter responses by default; live OpenRouter connectivity test is supported as an explicit/manual run.
+  - API routing: unknown `/api/*` routes must return `404` and never fall back to SPA HTML.
+  - Drag/drop reliability: preserve last valid drag-over target and use it as fallback on drop when dnd-kit reports `over = null`.
+  - Verification: maintain a Playwright config that targets Docker app (`localhost:8000`) for runtime-parity testing.
 - Approval gates:
   - Gate A: approve this plan and AGENTS docs before coding.
   - Gate B: approve database model docs before backend API implementation (after Part 5).
@@ -71,14 +74,23 @@ This section keeps the original 10-part outline and adds concrete execution deta
 
 ### Part-by-part checklist, tests, and success criteria
 
+### Implementation status (current)
+
+- Completed: Parts 1, 2, 3, 4, 5, 6, 7.
+- In progress: Part 8 onward not started.
+- Completed supporting docs:
+  - `backend/AGENTS.md`
+  - `frontend/AGENTS.md`
+  - `docs/DATABASE.md`
+
 #### Part 1: Plan
 
 Checklist
-- [ ] Keep this original 10-part outline intact.
-- [ ] Add a detailed plan section with substeps, test scope, and success criteria.
-- [ ] Add concrete `backend/AGENTS.md`.
-- [ ] Add concrete `frontend/AGENTS.md`.
-- [ ] Get explicit user approval before coding.
+- [x] Keep this original 10-part outline intact.
+- [x] Add a detailed plan section with substeps, test scope, and success criteria.
+- [x] Add concrete `backend/AGENTS.md`.
+- [x] Add concrete `frontend/AGENTS.md`.
+- [x] Get explicit user approval before coding.
 
 Tests
 - Documentation review only (no code execution required).
@@ -90,10 +102,10 @@ Success criteria
 #### Part 2: Scaffolding
 
 Checklist
-- [ ] Create backend FastAPI scaffold in `backend/`.
-- [ ] Add Dockerfile and compose config for local containerized run.
-- [ ] Add cross-platform start/stop scripts in `scripts/`.
-- [ ] Serve simple backend HTML/API smoke endpoint to validate container and app wiring.
+- [x] Create backend FastAPI scaffold in `backend/`.
+- [x] Add Dockerfile and compose config for local containerized run.
+- [x] Add cross-platform start/stop scripts in `scripts/`.
+- [x] Serve simple backend HTML/API smoke endpoint to validate container and app wiring.
 
 Tests
 - Smoke: container builds and starts successfully.
@@ -107,9 +119,9 @@ Success criteria
 #### Part 3: Add in Frontend
 
 Checklist
-- [ ] Build NextJS frontend as static assets.
-- [ ] Configure FastAPI to serve built frontend at `/`.
-- [ ] Ensure Kanban demo renders through backend-hosted root route.
+- [x] Build NextJS frontend as static assets.
+- [x] Configure FastAPI to serve built frontend at `/`.
+- [x] Ensure Kanban demo renders through backend-hosted root route.
 
 Tests
 - Frontend unit tests (`vitest`).
@@ -123,10 +135,10 @@ Success criteria
 #### Part 4: Fake sign-in UX
 
 Checklist
-- [ ] Add login screen flow on first visit.
-- [ ] Enforce hardcoded credentials (`user` / `password`).
-- [ ] Add logout capability.
-- [ ] Guard Kanban route/view behind signed-in state.
+- [x] Add login screen flow on first visit.
+- [x] Enforce hardcoded credentials (`user` / `password`).
+- [x] Add logout capability.
+- [x] Guard Kanban route/view behind signed-in state.
 
 Tests
 - Frontend unit tests for login form behavior and guard logic.
@@ -139,11 +151,11 @@ Success criteria
 #### Part 5: Database modeling
 
 Checklist
-- [ ] Propose SQLite schema supporting multi-user future and one-board-per-user MVP.
-- [ ] Define normalized schema for boards, columns, and cards.
-- [ ] Define optional JSON metadata fields (only where needed).
-- [ ] Add database design doc under `docs/` with rationale and migration approach.
-- [ ] Obtain user sign-off before implementing data layer/API details.
+- [x] Propose SQLite schema supporting multi-user future and one-board-per-user MVP.
+- [x] Define normalized schema for boards, columns, and cards.
+- [x] Define optional JSON metadata fields (only where needed).
+- [x] Add database design doc under `docs/` with rationale and migration approach.
+- [x] Obtain user sign-off before implementing data layer/API details.
 
 Tests
 - Design validation only:
@@ -157,10 +169,10 @@ Success criteria
 #### Part 6: Backend API
 
 Checklist
-- [ ] Implement board read/write routes scoped by user.
-- [ ] Create DB automatically if missing.
-- [ ] Add service/repository logic for board persistence.
-- [ ] Add consistent API error responses and validation.
+- [x] Implement board read/write routes scoped by user.
+- [x] Create DB automatically if missing.
+- [x] Add service/repository logic for board persistence.
+- [x] Add consistent API error responses and validation.
 
 Tests
 - Backend unit tests for service and repository logic.
@@ -174,9 +186,9 @@ Success criteria
 #### Part 7: Frontend + Backend integration
 
 Checklist
-- [ ] Replace local demo-only state with backend-backed data fetch/update.
-- [ ] Keep drag/drop and card edit UX functional with persistence.
-- [ ] Handle loading and basic API error states in UI.
+- [x] Replace local demo-only state with backend-backed data fetch/update.
+- [x] Keep drag/drop and card edit UX functional with persistence.
+- [x] Handle loading and basic API error states in UI.
 
 Tests
 - Frontend integration tests for fetch, update, and refresh flows.
