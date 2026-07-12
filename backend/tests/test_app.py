@@ -93,3 +93,66 @@ def test_put_board_rejects_dangling_card_reference(client: TestClient) -> None:
 def test_get_board_rejects_empty_username(client: TestClient) -> None:
     response = client.get("/api/board?username=%20")
     assert response.status_code == 400
+
+
+def test_ai_chat_returns_runtime_error_when_api_key_missing(client: TestClient) -> None:
+    original_key = settings.openrouter_api_key
+    settings.openrouter_api_key = None
+    try:
+        response = client.post(
+            "/api/ai/chat",
+            json={
+                "username": "user",
+                "question": "What is 2+2?",
+                "conversation": [],
+            },
+        )
+    finally:
+        settings.openrouter_api_key = original_key
+
+    assert response.status_code == 503
+    assert "OPENROUTER_API_KEY" in response.json()["detail"]
+
+
+def test_ai_chat_live_connectivity_returns_model_answer(client: TestClient) -> None:
+    if not settings.openrouter_live_test_enabled:
+        pytest.skip("Set OPENROUTER_LIVE_TEST_ENABLED=true to run live OpenRouter test.")
+    if not settings.openrouter_api_key:
+        pytest.skip("Set OPENROUTER_API_KEY in project .env before running live test.")
+
+    response = client.post(
+        "/api/ai/chat",
+        json={
+            "username": "user",
+            "question": "What is 2+2? Reply with only the number.",
+            "conversation": [],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["response"].strip()
+    assert "4" in payload["response"]
+    assert payload["board_update"] is None
+
+
+def test_ai_chat_live_invalid_key_returns_runtime_error(client: TestClient) -> None:
+    if not settings.openrouter_live_test_enabled:
+        pytest.skip("Set OPENROUTER_LIVE_TEST_ENABLED=true to run live OpenRouter test.")
+
+    original_key = settings.openrouter_api_key
+    settings.openrouter_api_key = "invalid-openrouter-key"
+    try:
+        response = client.post(
+            "/api/ai/chat",
+            json={
+                "username": "user",
+                "question": "What is 2+2?",
+                "conversation": [],
+            },
+        )
+    finally:
+        settings.openrouter_api_key = original_key
+
+    assert response.status_code == 502
+    assert "rejected the API key" in response.json()["detail"]

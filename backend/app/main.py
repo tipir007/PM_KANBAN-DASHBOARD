@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 
+from app.api.ai import router as ai_router
 from app.api.board import router as board_router
 from app.api.health import router as system_router
 from app.core.config import settings
@@ -18,6 +19,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.include_router(system_router)
 app.include_router(board_router)
+app.include_router(ai_router)
 
 STATIC_DIR = settings.static_dir
 INDEX_FILE = STATIC_DIR / "index.html"

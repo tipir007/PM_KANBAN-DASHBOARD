@@ -44,7 +44,9 @@ This section keeps the original 10-part outline and adds concrete execution deta
 
 - Locked decisions from planning review:
   - Database model: normalized SQLite tables for users/boards/columns/cards, with optional JSON metadata fields where useful.
-  - AI testing: CI uses mocked OpenRouter responses by default; live OpenRouter connectivity test is supported as an explicit/manual run.
+  - AI testing: Part 8 validates against real OpenRouter responses (no mocks) but only when an explicit live-test gate is enabled.
+  - AI endpoint shape: Part 8 uses the planned `/api/ai/chat` endpoint shape that Part 9 will extend with board JSON and structured outputs.
+  - AI key failures: missing/invalid `OPENROUTER_API_KEY` must return runtime API errors from the AI route (not startup failure).
   - API routing: unknown `/api/*` routes must return `404` and never fall back to SPA HTML.
   - Drag/drop reliability: preserve last valid drag-over target and use it as fallback on drop when dnd-kit reports `over = null`.
   - Verification: maintain a Playwright config that targets Docker app (`localhost:8000`) for runtime-parity testing.
@@ -76,8 +78,8 @@ This section keeps the original 10-part outline and adds concrete execution deta
 
 ### Implementation status (current)
 
-- Completed: Parts 1, 2, 3, 4, 5, 6, 7.
-- In progress: Part 8 onward not started.
+- Completed: Parts 1, 2, 3, 4, 5, 6, 7, 8.
+- In progress: Part 9 onward not started.
 - Completed supporting docs:
   - `backend/AGENTS.md`
   - `frontend/AGENTS.md`
@@ -202,15 +204,16 @@ Success criteria
 #### Part 8: AI connectivity
 
 Checklist
-- [ ] Add backend OpenRouter client integration.
-- [ ] Read `OPENROUTER_API_KEY` from project `.env`.
-- [ ] Configure model `openai/gpt-oss-120b`.
-- [ ] Provide simple backend test route/function for connectivity check.
+- [x] Add backend OpenRouter client integration.
+- [x] Read `OPENROUTER_API_KEY` from project `.env`.
+- [x] Configure model `openai/gpt-oss-120b`.
+- [x] Integrate connectivity check into `/api/ai/chat` endpoint shape that will be extended in Part 9.
+- [x] Gate live connectivity test so real provider calls only run when explicitly enabled.
 
 Tests
-- CI integration test using a controlled prompt (`2+2`) with mocked OpenRouter client responses.
-- Optional/manual live connectivity test using real OpenRouter call.
-- Error-path test for missing/invalid API key handling.
+- Gated live integration test using a controlled prompt (`2+2`) through `/api/ai/chat` (no mocking).
+- Error-path test for runtime API handling when `OPENROUTER_API_KEY` is missing/invalid.
+- Keep live call disabled by default; enable manually with `OPENROUTER_LIVE_TEST_ENABLED=true`.
 
 Success criteria
 - Backend can successfully call OpenRouter with configured model.
