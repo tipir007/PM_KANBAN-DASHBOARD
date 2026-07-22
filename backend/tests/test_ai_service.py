@@ -26,3 +26,17 @@ def test_parse_structured_output_rejects_invalid_board_update_shape() -> None:
     """
     with pytest.raises(AIProviderError):
         parse_structured_output(invalid_payload)
+
+
+def test_parse_structured_output_rejects_duplicate_card_reference() -> None:
+    invalid_payload = """
+    {
+      "response": "attempted update",
+      "board_update": {
+        "columns": [{"id": "c1", "title": "Todo", "cardIds": ["card-1", "card-1"]}],
+        "cards": {"card-1": {"id": "card-1", "title": "Task", "details": ""}}
+      }
+    }
+    """
+    with pytest.raises(AIProviderError):
+        parse_structured_output(invalid_payload)

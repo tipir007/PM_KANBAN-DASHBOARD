@@ -101,6 +101,27 @@ def test_put_board_rejects_dangling_card_reference(client: TestClient) -> None:
     assert response.status_code == 422
 
 
+def test_put_board_rejects_duplicate_card_reference(client: TestClient) -> None:
+    invalid_board = {
+        "columns": [{"id": "col-backlog", "title": "Backlog", "cardIds": ["card-1", "card-1"]}],
+        "cards": {"card-1": {"id": "card-1", "title": "Task", "details": ""}},
+    }
+    response = client.put("/api/board", json=invalid_board)
+    assert response.status_code == 422
+
+
+def test_put_board_rejects_duplicate_column_id(client: TestClient) -> None:
+    invalid_board = {
+        "columns": [
+            {"id": "col-backlog", "title": "Backlog", "cardIds": []},
+            {"id": "col-backlog", "title": "Backlog Again", "cardIds": []},
+        ],
+        "cards": {},
+    }
+    response = client.put("/api/board", json=invalid_board)
+    assert response.status_code == 422
+
+
 def test_get_board_rejects_empty_username(client: TestClient) -> None:
     response = client.get("/api/board?username=%20")
     assert response.status_code == 400

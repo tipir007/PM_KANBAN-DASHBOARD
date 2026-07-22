@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useState, type KeyboardEvent } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Card, Column } from "@/lib/kanban";
@@ -21,6 +22,30 @@ export const KanbanColumn = ({
   onDeleteCard,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const [titleDraft, setTitleDraft] = useState(column.title);
+  const [syncedTitle, setSyncedTitle] = useState(column.title);
+
+  if (column.title !== syncedTitle) {
+    setSyncedTitle(column.title);
+    setTitleDraft(column.title);
+  }
+
+  const commitTitle = () => {
+    const trimmed = titleDraft.trim();
+    if (!trimmed) {
+      setTitleDraft(column.title);
+      return;
+    }
+    if (trimmed !== column.title) {
+      onRename(column.id, trimmed);
+    }
+  };
+
+  const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.currentTarget.blur();
+    }
+  };
 
   return (
     <section
@@ -40,8 +65,10 @@ export const KanbanColumn = ({
             </span>
           </div>
           <input
-            value={column.title}
-            onChange={(event) => onRename(column.id, event.target.value)}
+            value={titleDraft}
+            onChange={(event) => setTitleDraft(event.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={handleTitleKeyDown}
             className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none"
             aria-label="Column title"
           />

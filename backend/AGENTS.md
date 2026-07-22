@@ -13,8 +13,9 @@ The backend is a FastAPI service that:
 
 Use this structure as backend is implemented:
 
-- `backend/app/main.py` - FastAPI app creation, router registration, static mount.
-- `backend/app/api/` - HTTP route modules (group by feature).
+- `backend/app/main.py` - FastAPI app creation and router registration only.
+- `backend/app/api/` - HTTP route modules (group by feature), all prefixed `/api`.
+- `backend/app/web/` - non-API routes: serving the static frontend build and the SPA fallback.
 - `backend/app/schemas/` - Pydantic request/response models.
 - `backend/app/services/` - business logic orchestration (auth, board, AI workflows).
 - `backend/app/repositories/` - database read/write logic.

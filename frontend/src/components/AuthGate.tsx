@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { KanbanBoard } from "@/components/KanbanBoard";
 
 const AUTH_KEY = "pm-authenticated";
@@ -8,15 +8,12 @@ const DEMO_USERNAME = "user";
 const DEMO_PASSWORD = "password";
 
 export const AuthGate = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem(AUTH_KEY) === "true"
+  );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(AUTH_KEY);
-    setIsAuthenticated(stored === "true");
-  }, []);
 
   const handleLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

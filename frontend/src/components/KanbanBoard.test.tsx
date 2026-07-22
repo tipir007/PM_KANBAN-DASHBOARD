@@ -64,6 +64,34 @@ describe("KanbanBoard", () => {
     expect(input).toHaveValue("New Name");
   });
 
+  it("only saves a column rename once, on blur, not per keystroke", async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    render(<KanbanBoard />);
+    await screen.findByRole("heading", { name: /kanban studio/i });
+    fetchMock.mockClear();
+
+    const column = getFirstColumn();
+    const input = within(column).getByLabelText("Column title");
+    await userEvent.clear(input);
+    await userEvent.type(input, "New Name");
+
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ method: "PUT" })
+    );
+
+    await userEvent.tab();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ method: "PUT" })
+    );
+    const putCalls = fetchMock.mock.calls.filter(
+      ([, init]) => (init as RequestInit | undefined)?.method === "PUT"
+    );
+    expect(putCalls).toHaveLength(1);
+  });
+
   it("adds and removes a card", async () => {
     render(<KanbanBoard />);
     await screen.findByRole("heading", { name: /kanban studio/i });

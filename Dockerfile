@@ -10,8 +10,8 @@ WORKDIR /workspace/backend
 
 RUN pip install --no-cache-dir uv
 
-COPY backend/pyproject.toml ./
-RUN uv sync --no-dev
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --no-dev --locked
 
 COPY backend/ ./
 COPY --from=frontend-builder /workspace/frontend/out ./static

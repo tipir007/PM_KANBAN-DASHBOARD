@@ -27,6 +27,23 @@ class BoardPayload(BaseModel):
         dangling = [card_id for card_id in referenced_card_ids if card_id not in known_card_ids]
         if dangling:
             raise ValueError(f"columns reference unknown card ids: {', '.join(sorted(set(dangling)))}")
+
+        seen_card_ids: set[str] = set()
+        duplicate_card_ids: set[str] = set()
+        for card_id in referenced_card_ids:
+            if card_id in seen_card_ids:
+                duplicate_card_ids.add(card_id)
+            seen_card_ids.add(card_id)
+        if duplicate_card_ids:
+            raise ValueError(
+                f"card ids referenced more than once across columns: {', '.join(sorted(duplicate_card_ids))}"
+            )
+
+        column_ids = [column.id for column in self.columns]
+        duplicate_column_ids = {column_id for column_id in column_ids if column_ids.count(column_id) > 1}
+        if duplicate_column_ids:
+            raise ValueError(f"duplicate column ids: {', '.join(sorted(duplicate_column_ids))}")
+
         return self
 
 
