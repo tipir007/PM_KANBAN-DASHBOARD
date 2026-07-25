@@ -101,18 +101,5 @@ export const AuthGate = () => {
     );
   }
 
-  return (
-    <div>
-      <div className="fixed right-6 top-6 z-20">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="rounded-full border border-[var(--stroke)] bg-white px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--navy-dark)] shadow-[var(--shadow)]"
-        >
-          Logout
-        </button>
-      </div>
-      <KanbanBoard />
-    </div>
-  );
+  return <KanbanBoard onLogout={handleLogout} />;
 };

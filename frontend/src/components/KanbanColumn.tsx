@@ -56,22 +56,20 @@ export const KanbanColumn = ({
       )}
       data-testid={`column-${column.id}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="w-full">
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-10 rounded-full bg-[var(--accent-yellow)]" />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
-              {cards.length} cards
-            </span>
-          </div>
+      <div className="flex flex-col gap-2">
+        <div className="h-1.5 w-10 rounded-full bg-[var(--accent-yellow)]" />
+        <div className="flex items-center gap-2">
           <input
             value={titleDraft}
             onChange={(event) => setTitleDraft(event.target.value)}
             onBlur={commitTitle}
             onKeyDown={handleTitleKeyDown}
-            className="mt-3 w-full bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none"
+            className="min-w-0 flex-1 rounded-lg bg-transparent font-display text-lg font-semibold text-[var(--navy-dark)] outline-none transition focus:bg-[var(--surface)] focus:px-2"
             aria-label="Column title"
           />
+          <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] px-2 text-xs font-semibold text-[var(--gray-text)]">
+            {cards.length}
+          </span>
         </div>
       </div>
       <div className="mt-4 flex flex-1 flex-col gap-3">

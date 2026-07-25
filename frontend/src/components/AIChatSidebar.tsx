@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { chatWithAI, type ChatMessage } from "@/lib/api";
 import type { BoardData } from "@/lib/kanban";
+import { SendIcon, SparkleIcon } from "@/components/icons";
 
 type Props = {
   username?: string;
@@ -59,9 +60,12 @@ export const AIChatSidebar = ({
 
   return (
     <aside className="rounded-[28px] border border-[var(--stroke)] bg-white/90 p-5 shadow-[var(--shadow)] backdrop-blur lg:sticky lg:top-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--primary-blue)]">
-        AI Assistant
-      </p>
+      <div className="flex items-center gap-2 text-[var(--primary-blue)]">
+        <SparkleIcon width={14} height={14} />
+        <p className="text-xs font-semibold uppercase tracking-[0.25em]">
+          AI Assistant
+        </p>
+      </div>
       <h2 className="mt-2 font-display text-2xl font-semibold text-[var(--navy-dark)]">
         Board Copilot
       </h2>
@@ -120,8 +124,9 @@ export const AIChatSidebar = ({
         <button
           type="submit"
           disabled={isSending}
-          className="inline-flex items-center justify-center rounded-xl bg-[var(--secondary-purple)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--secondary-purple)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
+          <SendIcon width={15} height={15} />
           {isSending ? "Sending..." : "Send"}
         </button>
       </form>

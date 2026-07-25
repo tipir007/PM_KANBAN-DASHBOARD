@@ -187,8 +187,11 @@ def test_ai_chat_response_only_path_uses_structured_output(client: TestClient, m
     payload = response.json()
     assert payload["response"] == "No board change needed"
     assert payload["board_update"] is None
-    assert captured_request["json"]["messages"][0]["content"] == "Previous response"
-    assert "Current Kanban board JSON" in captured_request["json"]["messages"][-1]["content"]
+    sent_messages = captured_request["json"]["messages"]
+    assert sent_messages[0]["role"] == "system"
+    assert "board_update" in sent_messages[0]["content"]
+    assert sent_messages[1]["content"] == "Previous response"
+    assert "Current Kanban board JSON" in sent_messages[-1]["content"]
 
 
 def test_ai_chat_valid_board_update_path_persists_changes(

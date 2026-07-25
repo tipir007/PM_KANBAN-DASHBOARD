@@ -17,8 +17,13 @@ import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import { AIChatSidebar } from "@/components/AIChatSidebar";
 import { fetchBoard, updateBoard, type ChatMessage } from "@/lib/api";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
+import { LogoutIcon } from "@/components/icons";
 
-export const KanbanBoard = () => {
+type KanbanBoardProps = {
+  onLogout?: () => void;
+};
+
+export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
   const [board, setBoard] = useState<BoardData>(() => initialData);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -157,10 +162,11 @@ export const KanbanBoard = () => {
   };
 
   const activeCard = activeCardId ? cardsById[activeCardId] : null;
+  const totalCards = Object.keys(board.cards).length;
 
   if (isLoading) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-center px-6 py-12">
+      <main className="mx-auto flex min-h-screen max-w-[1760px] items-center justify-center px-6 py-12">
         <p className="text-sm font-medium text-[var(--gray-text)]">Loading board...</p>
       </main>
     );
@@ -171,7 +177,7 @@ export const KanbanBoard = () => {
       <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(32,157,215,0.25)_0%,_rgba(32,157,215,0.05)_55%,_transparent_70%)]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
 
-      <main className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col gap-10 px-6 pb-16 pt-12">
+      <main className="relative mx-auto flex min-h-screen max-w-[1760px] flex-col gap-8 px-6 pb-16 pt-10 lg:px-10">
         {loadError ? (
           <p
             role="status"
@@ -194,43 +200,51 @@ export const KanbanBoard = () => {
           <p className="text-sm font-medium text-[var(--gray-text)]">Saving changes...</p>
         ) : null}
 
-        <header className="flex flex-col gap-6 rounded-[32px] border border-[var(--stroke)] bg-white/80 p-8 shadow-[var(--shadow)] backdrop-blur">
-          <div className="flex flex-wrap items-start justify-between gap-6">
+        <header className="flex flex-wrap items-center justify-between gap-6 rounded-[28px] border border-[var(--stroke)] bg-white/80 px-8 py-6 shadow-[var(--shadow)] backdrop-blur">
+          <div className="flex items-center gap-5">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--navy-dark)] font-display text-2xl font-semibold text-[var(--accent-yellow)]">
+              K
+            </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
                 Single Board Kanban
               </p>
-              <h1 className="mt-3 font-display text-4xl font-semibold text-[var(--navy-dark)]">
+              <h1 className="font-display text-3xl font-semibold text-[var(--navy-dark)]">
                 Kanban Studio
               </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--gray-text)]">
-                Keep momentum visible. Rename columns, drag cards between stages,
-                and capture quick notes without getting buried in settings.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
-                Focus
-              </p>
-              <p className="mt-2 text-lg font-semibold text-[var(--primary-blue)]">
-                One board. Five columns. Zero clutter.
-              </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            {board.columns.map((column) => (
-              <div
-                key={column.id}
-                className="flex items-center gap-2 rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--navy-dark)]"
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-[var(--surface)] px-4 py-2">
+              <span className="font-display text-lg font-semibold text-[var(--primary-blue)]">
+                {board.columns.length}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--gray-text)]">
+                columns
+              </span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-[var(--surface)] px-4 py-2">
+              <span className="font-display text-lg font-semibold text-[var(--secondary-purple)]">
+                {totalCards}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--gray-text)]">
+                cards
+              </span>
+            </div>
+            {onLogout ? (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex items-center gap-2 rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--navy-dark)] transition hover:text-[var(--secondary-purple)]"
               >
-                <span className="h-2 w-2 rounded-full bg-[var(--accent-yellow)]" />
-                {column.title}
-              </div>
-            ))}
+                <LogoutIcon width={14} height={14} />
+                Logout
+              </button>
+            ) : null}
           </div>
         </header>
 
-        <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,4fr)_minmax(320px,1fr)]">
+        <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
