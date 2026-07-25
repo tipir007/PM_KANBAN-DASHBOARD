@@ -50,6 +50,7 @@ class AIService:
                     "model": settings.openrouter_model,
                     "messages": messages,
                     "temperature": 0,
+                    "max_tokens": 8192,
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     static_dir: Path = BACKEND_ROOT / "static"
     db_path: Path = BACKEND_ROOT / "data" / "pm.db"
     openrouter_api_key: str | None = None
-    openrouter_model: str = "openai/gpt-oss-120b"
+    openrouter_model: str = "moonshotai/kimi-k2.5"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_live_test_enabled: bool = False
 

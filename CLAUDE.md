@@ -82,9 +82,14 @@ these paths elsewhere.
 ### AI structured-update flow
 
 `POST /api/ai/chat` sends the current board (from `board_repository`) plus the user's question and
-conversation history to OpenRouter (`openai/gpt-oss-120b`), forcing a structured JSON response containing
-`response` (text) and an optional `board_update` (a full `BoardPayload`). If present, `board_update` is
-validated and persisted the same way `PUT /api/board` persists a board. The frontend (`AIChatSidebar.tsx`)
+conversation history to OpenRouter (model set by `settings.openrouter_model`, default
+`moonshotai/kimi-k2.5`), forcing a structured JSON response containing `response` (text) and an optional
+`board_update` (a full `BoardPayload`). The request caps `max_tokens` (see `ai_service.py`): without a cap,
+OpenRouter reserves the model's full output window, which can exceed the API key's credit budget and fail
+with a 402. If present, `board_update` is
+validated and persisted the same way `PUT /api/board` persists a board. Any replacement `openrouter_model`
+must support strict `response_format` json_schema, or chat requests fail (the service raises and the route
+returns 502). The frontend (`AIChatSidebar.tsx`)
 re-fetches the board when a chat response includes an update, so the Kanban view refreshes automatically —
 there is no push/streaming channel.
 
