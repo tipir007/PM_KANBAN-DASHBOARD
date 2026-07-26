@@ -22,18 +22,14 @@ type KanbanBoardProps = {
   boardId?: string;
   boardName?: string;
   username?: string;
-  canDelete?: boolean;
   onRenameBoard?: (name: string) => void;
-  onDeleteBoard?: () => void;
 };
 
 export const KanbanBoard = ({
   boardId,
   boardName = "Board",
   username = "user",
-  canDelete = false,
   onRenameBoard,
-  onDeleteBoard,
 }: KanbanBoardProps = {}) => {
   const [board, setBoard] = useState<BoardData>(() => initialData);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
@@ -264,17 +260,6 @@ export const KanbanBoard = ({
                 cards
               </span>
             </div>
-            {onDeleteBoard ? (
-              <button
-                type="button"
-                onClick={onDeleteBoard}
-                disabled={!canDelete}
-                title={canDelete ? "Delete this board" : "You cannot delete your only board"}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--navy-dark)] transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Delete board
-              </button>
-            ) : null}
           </div>
         </header>
 
