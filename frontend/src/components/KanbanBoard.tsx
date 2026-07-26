@@ -15,15 +15,26 @@ import {
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import { AIChatSidebar } from "@/components/AIChatSidebar";
-import { fetchBoard, updateBoard, type ChatMessage } from "@/lib/api";
+import { fetchBoardById, updateBoardById, type ChatMessage } from "@/lib/api";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
-import { LogoutIcon } from "@/components/icons";
 
 type KanbanBoardProps = {
-  onLogout?: () => void;
+  boardId?: string;
+  boardName?: string;
+  username?: string;
+  canDelete?: boolean;
+  onRenameBoard?: (name: string) => void;
+  onDeleteBoard?: () => void;
 };
 
-export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
+export const KanbanBoard = ({
+  boardId,
+  boardName = "Board",
+  username = "user",
+  canDelete = false,
+  onRenameBoard,
+  onDeleteBoard,
+}: KanbanBoardProps = {}) => {
   const [board, setBoard] = useState<BoardData>(() => initialData);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +42,7 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [nameDraft, setNameDraft] = useState(boardName);
   const lastOverIdRef = useRef<string | null>(null);
 
   const sensors = useSensors(
@@ -42,13 +54,21 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
   const cardsById = useMemo(() => board.cards, [board.cards]);
 
   useEffect(() => {
+    setNameDraft(boardName);
+  }, [boardName]);
+
+  useEffect(() => {
     let active = true;
 
     const loadBoard = async () => {
+      if (!boardId) {
+        setIsLoading(false);
+        return;
+      }
       try {
-        const remoteBoard = await fetchBoard();
+        const content = await fetchBoardById(boardId);
         if (active) {
-          setBoard(remoteBoard);
+          setBoard(content.board);
           setLoadError(null);
         }
       } catch {
@@ -67,13 +87,16 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [boardId]);
 
   const applyBoardUpdate = (nextBoard: BoardData) => {
     setBoard(nextBoard);
+    if (!boardId) {
+      return;
+    }
     setIsSaving(true);
     setSaveError(null);
-    void updateBoard(nextBoard)
+    void updateBoardById(boardId, nextBoard)
       .catch(() => {
         setSaveError("Failed to save board changes.");
       })
@@ -207,11 +230,21 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
             </span>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
-                Single Board Kanban
-              </p>
-              <h1 className="font-display text-3xl font-semibold text-[var(--navy-dark)]">
                 Kanban Studio
-              </h1>
+              </p>
+              <input
+                aria-label="Board name"
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+                onBlur={() => {
+                  if (nameDraft.trim() && nameDraft.trim() !== boardName) {
+                    onRenameBoard?.(nameDraft.trim());
+                  } else {
+                    setNameDraft(boardName);
+                  }
+                }}
+                className="w-full max-w-[360px] rounded-lg border border-transparent bg-transparent font-display text-3xl font-semibold text-[var(--navy-dark)] outline-none focus:border-[var(--stroke)]"
+              />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -231,14 +264,15 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
                 cards
               </span>
             </div>
-            {onLogout ? (
+            {onDeleteBoard ? (
               <button
                 type="button"
-                onClick={onLogout}
-                className="flex items-center gap-2 rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--navy-dark)] transition hover:text-[var(--secondary-purple)]"
+                onClick={onDeleteBoard}
+                disabled={!canDelete}
+                title={canDelete ? "Delete this board" : "You cannot delete your only board"}
+                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--navy-dark)] transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <LogoutIcon width={14} height={14} />
-                Logout
+                Delete board
               </button>
             ) : null}
           </div>
@@ -274,6 +308,8 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps = {}) => {
           </DndContext>
 
           <AIChatSidebar
+            username={username}
+            boardId={boardId}
             messages={chatMessages}
             onMessagesChange={setChatMessages}
             onBoardUpdateFromAI={handleBoardUpdateFromAI}

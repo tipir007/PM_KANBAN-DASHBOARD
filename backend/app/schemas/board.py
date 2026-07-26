@@ -50,3 +50,27 @@ class BoardPayload(BaseModel):
 class BoardResponse(BaseModel):
     username: str
     board: BoardPayload
+
+
+class BoardSummary(BaseModel):
+    id: str
+    name: str
+    position: int
+
+
+class BoardListResponse(BaseModel):
+    boards: list[BoardSummary]
+
+
+class CreateBoardRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class RenameBoardRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class BoardContentResponse(BaseModel):
+    id: str
+    name: str
+    board: BoardPayload

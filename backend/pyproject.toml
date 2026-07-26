@@ -22,3 +22,10 @@ build-backend = "hatchling.build"
 
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+# The app is run as a source tree (package = false), so add the backend root to
+# sys.path. Without this, `uv run pytest` (which calls the entry-point script,
+# not `python -m pytest`) cannot import the `app` package.
+pythonpath = ["."]
+testpaths = ["tests"]

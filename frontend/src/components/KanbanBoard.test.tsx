@@ -12,6 +12,15 @@ const readPath = (input: RequestInfo | URL) =>
       ? input.toString()
       : input.url;
 
+const renderBoard = () =>
+  render(<KanbanBoard boardId="board-1" boardName="My Board" username="user" />);
+
+const boardContent = (board = initialData) =>
+  new Response(JSON.stringify({ id: "board-1", name: "My Board", board }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
 beforeEach(() => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const method = init?.method ?? "GET";
@@ -19,28 +28,16 @@ beforeEach(() => {
     if (method === "POST" && path.includes("/api/ai/chat")) {
       return new Response(
         JSON.stringify({ response: "AI reply", board_update: null }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
 
     if (method === "PUT") {
       const board = JSON.parse(String(init?.body));
-      return new Response(JSON.stringify({ username: "user", board }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return boardContent(board);
     }
 
-    return new Response(
-      JSON.stringify({ username: "user", board: initialData }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return boardContent();
   });
 });
 
@@ -50,13 +47,13 @@ afterEach(() => {
 
 describe("KanbanBoard", () => {
   it("renders five columns", async () => {
-    render(<KanbanBoard />);
+    renderBoard();
     expect(await screen.findAllByTestId(/column-/i)).toHaveLength(5);
   });
 
   it("renames a column", async () => {
-    render(<KanbanBoard />);
-    await screen.findByRole("heading", { name: /kanban studio/i });
+    renderBoard();
+    await screen.findByLabelText("Board name");
     const column = getFirstColumn();
     const input = within(column).getByLabelText("Column title");
     await userEvent.clear(input);
@@ -66,8 +63,8 @@ describe("KanbanBoard", () => {
 
   it("only saves a column rename once, on blur, not per keystroke", async () => {
     const fetchMock = vi.mocked(globalThis.fetch);
-    render(<KanbanBoard />);
-    await screen.findByRole("heading", { name: /kanban studio/i });
+    renderBoard();
+    await screen.findByLabelText("Board name");
     fetchMock.mockClear();
 
     const column = getFirstColumn();
@@ -93,12 +90,10 @@ describe("KanbanBoard", () => {
   });
 
   it("adds and removes a card", async () => {
-    render(<KanbanBoard />);
-    await screen.findByRole("heading", { name: /kanban studio/i });
+    renderBoard();
+    await screen.findByLabelText("Board name");
     const column = getFirstColumn();
-    const addButton = within(column).getByRole("button", {
-      name: /add a card/i,
-    });
+    const addButton = within(column).getByRole("button", { name: /add a card/i });
     await userEvent.click(addButton);
 
     const titleInput = within(column).getByPlaceholderText(/card title/i);
@@ -118,9 +113,26 @@ describe("KanbanBoard", () => {
     expect(within(column).queryByText("New card")).not.toBeInTheDocument();
   });
 
+  it("renames the board on blur", async () => {
+    const onRenameBoard = vi.fn();
+    render(
+      <KanbanBoard
+        boardId="board-1"
+        boardName="My Board"
+        username="user"
+        onRenameBoard={onRenameBoard}
+      />
+    );
+    const nameInput = await screen.findByLabelText("Board name");
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Roadmap");
+    await userEvent.tab();
+    expect(onRenameBoard).toHaveBeenCalledWith("Roadmap");
+  });
+
   it("sends chat messages and shows AI response", async () => {
-    render(<KanbanBoard />);
-    await screen.findByRole("heading", { name: /kanban studio/i });
+    renderBoard();
+    await screen.findByLabelText("Board name");
 
     const chatInput = screen.getByLabelText(/ask ai about your board/i);
     await userEvent.type(chatInput, "Help me plan this sprint.");
@@ -128,6 +140,23 @@ describe("KanbanBoard", () => {
 
     expect(await screen.findByText("Help me plan this sprint.")).toBeInTheDocument();
     expect(await screen.findByText("AI reply")).toBeInTheDocument();
+  });
+
+  it("sends the board id with the chat request", async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    renderBoard();
+    await screen.findByLabelText("Board name");
+
+    await userEvent.type(screen.getByLabelText(/ask ai about your board/i), "Hi");
+    await userEvent.click(screen.getByRole("button", { name: /^send$/i }));
+    await screen.findByText("AI reply");
+
+    const chatCall = fetchMock.mock.calls.find(
+      ([input]) => readPath(input).includes("/api/ai/chat")
+    );
+    expect(chatCall).toBeDefined();
+    const body = JSON.parse(String((chatCall?.[1] as RequestInit).body));
+    expect(body.board_id).toBe("board-1");
   });
 
   it("applies AI board updates to the visible board", async () => {
@@ -150,32 +179,17 @@ describe("KanbanBoard", () => {
               },
             },
           }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
+          { status: 200, headers: { "Content-Type": "application/json" } }
         );
       }
-
       if (method === "PUT") {
-        const board = JSON.parse(String(init?.body));
-        return new Response(JSON.stringify({ username: "user", board }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
+        return boardContent(JSON.parse(String(init?.body)));
       }
-
-      return new Response(
-        JSON.stringify({ username: "user", board: initialData }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return boardContent();
     });
 
-    render(<KanbanBoard />);
-    await screen.findByRole("heading", { name: /kanban studio/i });
+    renderBoard();
+    await screen.findByLabelText("Board name");
 
     await userEvent.type(screen.getByLabelText(/ask ai about your board/i), "Update board");
     await userEvent.click(screen.getByRole("button", { name: /^send$/i }));
@@ -195,23 +209,13 @@ describe("KanbanBoard", () => {
         });
       }
       if (method === "PUT") {
-        const board = JSON.parse(String(init?.body));
-        return new Response(JSON.stringify({ username: "user", board }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
+        return boardContent(JSON.parse(String(init?.body)));
       }
-      return new Response(
-        JSON.stringify({ username: "user", board: initialData }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return boardContent();
     });
 
-    render(<KanbanBoard />);
-    await screen.findByRole("heading", { name: /kanban studio/i });
+    renderBoard();
+    await screen.findByLabelText("Board name");
 
     await userEvent.type(screen.getByLabelText(/ask ai about your board/i), "Any updates?");
     await userEvent.click(screen.getByRole("button", { name: /^send$/i }));
