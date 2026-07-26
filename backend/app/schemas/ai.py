@@ -12,6 +12,7 @@ class ChatMessage(BaseModel):
 
 class AIChatRequest(BaseModel):
     username: str = Field(default="user", min_length=1)
+    board_id: str | None = None
     question: str = Field(min_length=1)
     conversation: list[ChatMessage] = Field(default_factory=list)
 

@@ -20,8 +20,8 @@ Backend
 - [x] Board repository/service/API keyed by board_id: list, create, rename, delete, get, update.
 - [x] Ownership isolation (a user cannot touch another user's board -> 404) + cannot delete only board.
 - [x] Registration provisions a default "My Board"; new boards seeded with default columns.
-- [ ] AI chat keyed by board_id.
-- [x] Backend tests for board management (test_boards.py). Suite: 35 passed, 2 skipped.
+- [x] AI chat keyed by board_id (optional board_id on /api/ai/chat; ownership enforced; legacy path kept).
+- [x] Backend tests for board management + AI scoping. Suite: 37 passed, 2 skipped.
 
 Frontend
 - [ ] Real auth (register/login) UI replacing hardcoded AuthGate; store token.
