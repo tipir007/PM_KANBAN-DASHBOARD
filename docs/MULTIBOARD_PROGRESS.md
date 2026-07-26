@@ -17,9 +17,11 @@ Backend
 - [x] Schema: users.password_hash, boards without UNIQUE(user_id) + position, sessions table, migration for existing DBs.
 - [x] Password hashing + token generation (stdlib, no new deps).
 - [x] Auth repository / service / API (register, login, logout, me).
-- [ ] Board repository/service/API keyed by board_id: list, create, rename, delete, get, update.
+- [x] Board repository/service/API keyed by board_id: list, create, rename, delete, get, update.
+- [x] Ownership isolation (a user cannot touch another user's board -> 404) + cannot delete only board.
+- [x] Registration provisions a default "My Board"; new boards seeded with default columns.
 - [ ] AI chat keyed by board_id.
-- [ ] Backend tests for all of the above.
+- [x] Backend tests for board management (test_boards.py). Suite: 35 passed, 2 skipped.
 
 Frontend
 - [ ] Real auth (register/login) UI replacing hardcoded AuthGate; store token.

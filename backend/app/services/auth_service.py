@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from app.db.session import get_connection
+from app.repositories.board_repository import BoardRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import AuthResponse
 
@@ -23,6 +24,8 @@ class AuthService:
                 raise AuthError("username already taken")
             user_id = repository.create_user(username, password)
             token = repository.create_session(user_id)
+            # Every new user starts with one usable board named "My Board".
+            BoardRepository(connection).create_board(username, "My Board")
         return AuthResponse(token=token, username=username)
 
     def login(self, username: str, password: str) -> AuthResponse:
