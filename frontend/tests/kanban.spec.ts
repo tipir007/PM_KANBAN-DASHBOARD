@@ -13,12 +13,15 @@ const login = async (page: Page) => {
 // board or with each other. New boards are seeded with three columns
 // (Backlog / In Progress / Done) and no cards.
 const createFreshBoard = async (page: Page, name: string) => {
+  // "+ New board" lives inside the Boards dropdown menu.
+  await page.getByRole("button", { name: /boards menu/i }).click();
   await page.getByRole("button", { name: /new board/i }).click();
   await page.getByLabel("New board name").fill(name);
   await page.getByRole("button", { name: /^create$/i }).click();
-  // Creation finished: the create input disappears and the new board is active.
-  await expect(page.getByLabel("New board name")).toBeHidden();
+  // Creation finished: the new board becomes active.
   await expect(page.getByLabel("Board name", { exact: true })).toHaveValue(name);
+  // Close the boards menu so it does not overlay the columns.
+  await page.keyboard.press("Escape");
   await expect(page.locator('[data-testid^="column-"]')).toHaveCount(3);
 };
 

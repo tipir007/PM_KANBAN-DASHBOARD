@@ -21,6 +21,9 @@ type BoardRow = { id: string; name: string; position: number };
 
 let boardRows: BoardRow[];
 
+const openBoardsMenu = () =>
+  userEvent.click(screen.getByRole("button", { name: /boards menu/i }));
+
 beforeEach(() => {
   window.localStorage.setItem("pm-token", "tok-123");
   window.localStorage.setItem("pm-username", "alice");
@@ -59,37 +62,57 @@ afterEach(() => {
 });
 
 describe("BoardWorkspace", () => {
-  it("lists the user's boards", async () => {
+  it("lists the user's boards in the boards menu", async () => {
     render(<BoardWorkspace username="alice" onLogout={vi.fn()} />);
+    await screen.findByRole("button", { name: /boards menu/i });
+
+    await openBoardsMenu();
     expect(
-      await screen.findByRole("tab", { name: "My Board" })
+      await screen.findByRole("menuitemradio", { name: "My Board" })
     ).toBeInTheDocument();
   });
 
-  it("creates a new board and shows it as a tab", async () => {
+  it("creates a new board from the menu", async () => {
     render(<BoardWorkspace username="alice" onLogout={vi.fn()} />);
-    await screen.findByRole("tab", { name: "My Board" });
+    await screen.findByRole("button", { name: /boards menu/i });
 
+    await openBoardsMenu();
     await userEvent.click(screen.getByRole("button", { name: /new board/i }));
     await userEvent.type(screen.getByLabelText(/new board name/i), "Roadmap");
     await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
 
-    expect(await screen.findByRole("tab", { name: "Roadmap" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("menuitemradio", { name: "Roadmap" })
+    ).toBeInTheDocument();
   });
 
-  it("deletes a board when more than one exists", async () => {
+  it("deletes a board from the menu when more than one exists", async () => {
     boardRows = [
       { id: "board-1", name: "My Board", position: 0 },
       { id: "board-2", name: "Second", position: 1 },
     ];
     render(<BoardWorkspace username="alice" onLogout={vi.fn()} />);
-    await screen.findByRole("tab", { name: "My Board" });
+    await screen.findByRole("button", { name: /boards menu/i });
 
-    await userEvent.click(await screen.findByRole("button", { name: /delete board/i }));
+    await openBoardsMenu();
+    await userEvent.click(screen.getByRole("button", { name: /delete my board/i }));
 
     await waitFor(() =>
-      expect(screen.queryByRole("tab", { name: "My Board" })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole("menuitemradio", { name: "My Board" })
+      ).not.toBeInTheDocument()
     );
-    expect(screen.getByRole("tab", { name: "Second" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitemradio", { name: "Second" })).toBeInTheDocument();
+  });
+
+  it("logs out from the user menu", async () => {
+    const onLogout = vi.fn();
+    render(<BoardWorkspace username="alice" onLogout={onLogout} />);
+    await screen.findByRole("button", { name: /user menu/i });
+
+    await userEvent.click(screen.getByRole("button", { name: /user menu/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
+
+    await waitFor(() => expect(onLogout).toHaveBeenCalled());
   });
 });

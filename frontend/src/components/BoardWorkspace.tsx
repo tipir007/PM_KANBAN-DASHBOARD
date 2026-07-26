@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { Dropdown } from "@/components/Dropdown";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import {
   createBoard,
@@ -119,68 +120,124 @@ export const BoardWorkspace = ({ username, onLogout }: Props) => {
   }
 
   const activeBoard = boards.find((board) => board.id === activeBoardId) ?? null;
+  const canDelete = boards.length > 1;
 
   return (
     <div>
       <nav
-        aria-label="Boards"
+        aria-label="Workspace"
         className="mx-auto flex max-w-[1760px] flex-wrap items-center gap-3 px-6 pt-6 lg:px-10"
       >
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
-          {username}
-        </span>
-        <div className="flex flex-wrap items-center gap-2" role="tablist">
-          {boards.map((board) => (
-            <button
-              key={board.id}
-              type="button"
-              role="tab"
-              aria-selected={board.id === activeBoardId}
-              onClick={() => setActiveBoardId(board.id)}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                board.id === activeBoardId
-                  ? "border-[var(--primary-blue)] bg-[var(--primary-blue)] text-white"
-                  : "border-[var(--stroke)] bg-white text-[var(--navy-dark)] hover:border-[var(--primary-blue)]"
-              }`}
-            >
-              {board.name}
-            </button>
-          ))}
-        </div>
-
-        {isCreating ? (
-          <form onSubmit={handleCreate} className="flex items-center gap-2">
-            <input
-              aria-label="New board name"
-              value={newBoardName}
-              onChange={(event) => setNewBoardName(event.target.value)}
-              placeholder="Board name"
-              className="rounded-full border border-[var(--stroke)] px-4 py-2 text-sm text-[var(--navy-dark)] outline-none focus:border-[var(--primary-blue)]"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-sm font-semibold text-white"
-            >
-              Create
-            </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsCreating(true)}
-            className="rounded-full border border-dashed border-[var(--stroke)] px-4 py-2 text-sm font-semibold text-[var(--secondary-purple)] hover:border-[var(--secondary-purple)]"
-          >
-            + New board
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="ml-auto rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--navy-dark)] hover:text-[var(--secondary-purple)]"
+        {/* Boards scroll menu */}
+        <Dropdown
+          ariaLabel="Boards menu"
+          label={
+            <span className="max-w-[220px] truncate">
+              {activeBoard ? activeBoard.name : "Boards"}
+            </span>
+          }
         >
-          Logout
-        </button>
+          {(close) => (
+            <div>
+              <p className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+                Your boards
+              </p>
+              <ul role="none" className="max-h-64 overflow-y-auto py-1">
+                {boards.map((board) => {
+                  const isActive = board.id === activeBoardId;
+                  return (
+                    <li key={board.id} role="none" className="flex items-center">
+                      <button
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isActive}
+                        onClick={() => {
+                          setActiveBoardId(board.id);
+                          close();
+                        }}
+                        className={`flex-1 truncate px-4 py-2 text-left text-sm transition ${
+                          isActive
+                            ? "font-semibold text-[var(--primary-blue)]"
+                            : "text-[var(--navy-dark)] hover:bg-[var(--surface)]"
+                        }`}
+                      >
+                        {board.name}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete ${board.name}`}
+                        disabled={!canDelete}
+                        onClick={() => handleDelete(board.id)}
+                        className="mr-2 rounded-md px-2 py-1 text-xs font-semibold text-[var(--gray-text)] transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        Delete
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="border-t border-[var(--stroke)] p-2">
+                {isCreating ? (
+                  <form onSubmit={handleCreate} className="flex items-center gap-2">
+                    <input
+                      aria-label="New board name"
+                      value={newBoardName}
+                      onChange={(event) => setNewBoardName(event.target.value)}
+                      placeholder="Board name"
+                      autoFocus
+                      className="min-w-0 flex-1 rounded-lg border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--navy-dark)] outline-none focus:border-[var(--primary-blue)]"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-[var(--secondary-purple)] px-3 py-2 text-sm font-semibold text-white"
+                    >
+                      Create
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsCreating(true)}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--secondary-purple)] transition hover:bg-[var(--surface)]"
+                  >
+                    + New board
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </Dropdown>
+
+        {/* User management scroll menu */}
+        <div className="ml-auto">
+          <Dropdown ariaLabel="User menu" align="end" label={<span>{username}</span>}>
+            {(close) => (
+              <div className="py-1">
+                <div className="px-4 pb-2 pt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+                    Signed in as
+                  </p>
+                  <p className="truncate text-sm font-semibold text-[var(--navy-dark)]">
+                    {username}
+                  </p>
+                </div>
+                <div className="border-t border-[var(--stroke)] p-2">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      close();
+                      void handleLogout();
+                    }}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--navy-dark)] transition hover:bg-[var(--surface)] hover:text-[var(--secondary-purple)]"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </Dropdown>
+        </div>
       </nav>
 
       {error ? (
@@ -198,9 +255,7 @@ export const BoardWorkspace = ({ username, onLogout }: Props) => {
           boardId={activeBoard.id}
           boardName={activeBoard.name}
           username={username}
-          canDelete={boards.length > 1}
           onRenameBoard={(name) => handleRename(activeBoard.id, name)}
-          onDeleteBoard={() => handleDelete(activeBoard.id)}
         />
       ) : (
         <main className="mx-auto flex max-w-[1760px] items-center justify-center px-6 py-12">

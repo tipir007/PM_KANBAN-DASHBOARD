@@ -77,7 +77,8 @@ describe("AuthGate", () => {
 
     expect(await screen.findByLabelText("Board name")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /logout/i }));
+    await userEvent.click(screen.getByRole("button", { name: /user menu/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /logout/i }));
     expect(await screen.findByRole("heading", { name: /sign in/i })).toBeInTheDocument();
   });
 
