@@ -28,7 +28,17 @@ Frontend
 - [x] Board switcher (tabs) + create/rename/delete UI (BoardWorkspace).
 - [x] api.ts: auth calls, board-list calls, board-id-scoped calls, Bearer token header, chat with board_id.
 - [x] Unit tests (vitest): 18 passed. Lint clean. Production build (static export) compiles.
-- [ ] e2e (playwright) spec updated for new login/board UI; still needs a live run to confirm.
+- [x] e2e (playwright) updated for new login/board UI; 4 passed against the Docker full stack (playwright.docker.config.ts).
+
+## Final status (2026-07-26): COMPLETE
+
+- Backend: 37 passed, 2 skipped (skips are the env-gated OpenRouter live tests).
+- Frontend unit: 18 passed. e2e: 4 passed against Docker. Lint clean, build compiles.
+- Docker image rebuilt with the full stack; app healthy on http://localhost:8000.
+- All new features implemented: user management (register/login/logout/me, hashed
+  passwords, session tokens, real auth UI) and multiple kanban boards per user
+  (schema, CRUD API with ownership isolation, board switcher + create/rename/delete UI),
+  plus AI chat scoped to the selected board.
 
 ## Notes / decisions
 
