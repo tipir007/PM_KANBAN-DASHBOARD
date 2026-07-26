@@ -5,11 +5,13 @@ const login = async (page: import("@playwright/test").Page) => {
   await page.getByLabel("Username").fill("user");
   await page.getByLabel("Password").fill("password");
   await page.getByRole("button", { name: /sign in/i }).click();
+  // Wait for the authenticated workspace to load.
+  await expect(page.getByLabel("Board name")).toBeVisible();
 };
 
 test("loads the kanban board", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await expect(page.getByLabel("Board name")).toHaveValue("My Board");
   await expect(page.locator('[data-testid^="column-"]')).toHaveCount(5);
 });
 

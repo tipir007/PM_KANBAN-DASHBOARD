@@ -7,6 +7,7 @@ import { SendIcon, SparkleIcon } from "@/components/icons";
 
 type Props = {
   username?: string;
+  boardId?: string;
   messages: ChatMessage[];
   onMessagesChange: (messages: ChatMessage[]) => void;
   onBoardUpdateFromAI: (board: BoardData) => void;
@@ -14,6 +15,7 @@ type Props = {
 
 export const AIChatSidebar = ({
   username = "user",
+  boardId,
   messages,
   onMessagesChange,
   onBoardUpdateFromAI,
@@ -38,6 +40,7 @@ export const AIChatSidebar = ({
     try {
       const result = await chatWithAI({
         username,
+        boardId,
         question,
         conversation: messages,
       });

@@ -24,10 +24,11 @@ Backend
 - [x] Backend tests for board management + AI scoping. Suite: 37 passed, 2 skipped.
 
 Frontend
-- [ ] Real auth (register/login) UI replacing hardcoded AuthGate; store token.
-- [ ] Board switcher + create/rename/delete UI.
-- [ ] api.ts: auth calls, board-list calls, board-id-scoped calls, token header.
-- [ ] Unit + e2e tests.
+- [x] Real auth (register/login) UI replacing hardcoded AuthGate; token stored in localStorage.
+- [x] Board switcher (tabs) + create/rename/delete UI (BoardWorkspace).
+- [x] api.ts: auth calls, board-list calls, board-id-scoped calls, Bearer token header, chat with board_id.
+- [x] Unit tests (vitest): 18 passed. Lint clean. Production build (static export) compiles.
+- [ ] e2e (playwright) spec updated for new login/board UI; still needs a live run to confirm.
 
 ## Notes / decisions
 

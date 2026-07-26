@@ -1,17 +1,13 @@
 import type { BoardData } from "@/lib/kanban";
 
-type BoardResponse = {
-  username: string;
-  board: BoardData;
-};
-
 export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
 
 export type AIChatRequest = {
-  username: string;
+  boardId?: string;
+  username?: string;
   question: string;
   conversation: ChatMessage[];
 };
@@ -21,8 +17,67 @@ export type AIChatResponse = {
   board_update: BoardData | null;
 };
 
-const buildUrl = (username: string) =>
-  `/api/board?${new URLSearchParams({ username }).toString()}`;
+export type AuthResult = {
+  token: string;
+  username: string;
+};
+
+export type BoardSummary = {
+  id: string;
+  name: string;
+  position: number;
+};
+
+export type BoardContent = {
+  id: string;
+  name: string;
+  board: BoardData;
+};
+
+const TOKEN_KEY = "pm-token";
+const USERNAME_KEY = "pm-username";
+
+// --- token storage -------------------------------------------------------
+
+export const getToken = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return window.localStorage.getItem(TOKEN_KEY);
+};
+
+export const getStoredUsername = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return window.localStorage.getItem(USERNAME_KEY);
+};
+
+const storeSession = (result: AuthResult) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(TOKEN_KEY, result.token);
+  window.localStorage.setItem(USERNAME_KEY, result.username);
+};
+
+export const clearSession = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(USERNAME_KEY);
+};
+
+// --- helpers -------------------------------------------------------------
+
+const authHeaders = (extra: Record<string, string> = {}): Record<string, string> => {
+  const token = getToken();
+  return {
+    ...extra,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
 const readError = async (response: Response) => {
   try {
@@ -36,40 +91,138 @@ const readError = async (response: Response) => {
   return `Request failed with status ${response.status}`;
 };
 
-export const fetchBoard = async (username = "user"): Promise<BoardData> => {
-  const response = await fetch(buildUrl(username));
+// --- auth ----------------------------------------------------------------
+
+export const register = async (
+  username: string,
+  password: string
+): Promise<AuthResult> => {
+  const response = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
   if (!response.ok) {
     throw new Error(await readError(response));
   }
-  const payload = (await response.json()) as BoardResponse;
-  return payload.board;
+  const result = (await response.json()) as AuthResult;
+  storeSession(result);
+  return result;
 };
 
-export const updateBoard = async (
-  board: BoardData,
-  username = "user"
-): Promise<void> => {
-  const response = await fetch(buildUrl(username), {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(board),
+export const login = async (
+  username: string,
+  password: string
+): Promise<AuthResult> => {
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  const result = (await response.json()) as AuthResult;
+  storeSession(result);
+  return result;
+};
+
+export const logout = async (): Promise<void> => {
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: authHeaders(),
+    });
+  } finally {
+    clearSession();
+  }
+};
+
+// --- boards --------------------------------------------------------------
+
+export const fetchBoards = async (): Promise<BoardSummary[]> => {
+  const response = await fetch("/api/boards", { headers: authHeaders() });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  const payload = (await response.json()) as { boards: BoardSummary[] };
+  return payload.boards;
+};
+
+export const createBoard = async (name: string): Promise<BoardSummary> => {
+  const response = await fetch("/api/boards", {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return (await response.json()) as BoardSummary;
+};
+
+export const renameBoard = async (
+  boardId: string,
+  name: string
+): Promise<BoardSummary> => {
+  const response = await fetch(`/api/boards/${boardId}`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return (await response.json()) as BoardSummary;
+};
+
+export const deleteBoard = async (boardId: string): Promise<void> => {
+  const response = await fetch(`/api/boards/${boardId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
   });
   if (!response.ok) {
     throw new Error(await readError(response));
   }
 };
 
+export const fetchBoardById = async (boardId: string): Promise<BoardContent> => {
+  const response = await fetch(`/api/boards/${boardId}`, { headers: authHeaders() });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return (await response.json()) as BoardContent;
+};
+
+export const updateBoardById = async (
+  boardId: string,
+  board: BoardData
+): Promise<BoardContent> => {
+  const response = await fetch(`/api/boards/${boardId}`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(board),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return (await response.json()) as BoardContent;
+};
+
+// --- ai ------------------------------------------------------------------
+
 export const chatWithAI = async (
   payload: AIChatRequest
 ): Promise<AIChatResponse> => {
   const response = await fetch("/api/ai/chat", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      username: payload.username ?? getStoredUsername() ?? "user",
+      board_id: payload.boardId,
+      question: payload.question,
+      conversation: payload.conversation,
+    }),
   });
 
   if (!response.ok) {
