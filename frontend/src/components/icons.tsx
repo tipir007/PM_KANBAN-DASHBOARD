@@ -33,14 +33,6 @@ export const SendIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-export const LogoutIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" width={16} height={16} {...baseProps} {...props}>
-    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
-    <path d="M10 12h10" />
-    <path d="M17 9l3 3-3 3" />
-  </svg>
-);
-
 export const SparkleIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" width={16} height={16} {...baseProps} {...props}>
     <path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z" />

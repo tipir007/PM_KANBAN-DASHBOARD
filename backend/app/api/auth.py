@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header, HTTPException
 
-from app.api.deps import CurrentUsername, auth_service
+from app.api.deps import CurrentUsername, auth_service, extract_bearer_token
 from app.schemas.auth import AuthResponse, LoginRequest, MeResponse, RegisterRequest
 from app.services.auth_service import AuthError
 
@@ -25,11 +25,7 @@ def login(payload: LoginRequest) -> AuthResponse:
 
 @router.post("/logout", status_code=204)
 def logout(authorization: str | None = Header(default=None)) -> None:
-    token = None
-    if authorization:
-        parts = authorization.split(" ", 1)
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            token = parts[1].strip() or None
+    token = extract_bearer_token(authorization)
     if token:
         auth_service.logout(token)
 

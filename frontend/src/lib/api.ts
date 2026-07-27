@@ -93,11 +93,12 @@ const readError = async (response: Response) => {
 
 // --- auth ----------------------------------------------------------------
 
-export const register = async (
+const authenticate = async (
+  path: string,
   username: string,
   password: string
 ): Promise<AuthResult> => {
-  const response = await fetch("/api/auth/register", {
+  const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -110,22 +111,11 @@ export const register = async (
   return result;
 };
 
-export const login = async (
-  username: string,
-  password: string
-): Promise<AuthResult> => {
-  const response = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  if (!response.ok) {
-    throw new Error(await readError(response));
-  }
-  const result = (await response.json()) as AuthResult;
-  storeSession(result);
-  return result;
-};
+export const register = (username: string, password: string): Promise<AuthResult> =>
+  authenticate("/api/auth/register", username, password);
+
+export const login = (username: string, password: string): Promise<AuthResult> =>
+  authenticate("/api/auth/login", username, password);
 
 export const logout = async (): Promise<void> => {
   try {

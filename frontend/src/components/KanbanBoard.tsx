@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -46,8 +46,6 @@ export const KanbanBoard = ({
       activationConstraint: { distance: 6 },
     })
   );
-
-  const cardsById = useMemo(() => board.cards, [board.cards]);
 
   useEffect(() => {
     setNameDraft(boardName);
@@ -180,7 +178,7 @@ export const KanbanBoard = ({
     applyBoardUpdate(nextBoard);
   };
 
-  const activeCard = activeCardId ? cardsById[activeCardId] : null;
+  const activeCard = activeCardId ? board.cards[activeCardId] : null;
   const totalCards = Object.keys(board.cards).length;
 
   if (isLoading) {

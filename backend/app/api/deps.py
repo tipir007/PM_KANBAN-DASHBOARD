@@ -5,7 +5,7 @@ from app.services.auth_service import AuthService
 auth_service = AuthService()
 
 
-def _extract_bearer_token(authorization: str | None) -> str | None:
+def extract_bearer_token(authorization: str | None) -> str | None:
     if not authorization:
         return None
     parts = authorization.split(" ", 1)
@@ -16,7 +16,7 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
 
 def get_current_username(authorization: str | None = Header(default=None)) -> str:
     """Resolve the authenticated username from the Authorization: Bearer <token> header."""
-    token = _extract_bearer_token(authorization)
+    token = extract_bearer_token(authorization)
     if token is None:
         raise HTTPException(status_code=401, detail="authentication required")
     username = auth_service.username_for_token(token)

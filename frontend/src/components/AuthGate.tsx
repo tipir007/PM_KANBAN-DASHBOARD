@@ -59,6 +59,11 @@ export const AuthGate = () => {
 
   const isLogin = mode === "login";
 
+  let submitLabel = isLogin ? "Sign in" : "Create account";
+  if (isSubmitting) {
+    submitLabel = "Please wait...";
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[520px] items-center px-6 py-12">
       <section className="w-full rounded-[32px] border border-[var(--stroke)] bg-white/90 p-8 shadow-[var(--shadow)]">
@@ -121,11 +126,7 @@ export const AuthGate = () => {
             disabled={isSubmitting}
             className="w-full rounded-xl bg-[var(--secondary-purple)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting
-              ? "Please wait..."
-              : isLogin
-                ? "Sign in"
-                : "Create account"}
+            {submitLabel}
           </button>
         </form>
 

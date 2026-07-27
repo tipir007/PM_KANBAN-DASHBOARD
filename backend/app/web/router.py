@@ -21,7 +21,7 @@ def _render_index() -> HTMLResponse:
 def resolve_static_file(full_path: str) -> Path | None:
     """Resolve full_path against STATIC_DIR, rejecting anything that escapes it."""
     requested_path = (STATIC_DIR / full_path).resolve()
-    if requested_path.is_file() and Path(STATIC_DIR).resolve() in requested_path.parents:
+    if requested_path.is_file() and STATIC_DIR.resolve() in requested_path.parents:
         return requested_path
     return None
 

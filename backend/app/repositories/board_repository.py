@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from sqlite3 import Connection
+from sqlite3 import Connection, Row
 from uuid import uuid4
 
 from app.schemas.board import BoardPayload, BoardSummary, CardPayload, ColumnPayload
@@ -11,6 +11,10 @@ DEFAULT_NEW_BOARD_COLUMNS = ("Backlog", "In Progress", "Done")
 
 def _utc_now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _row_to_summary(row: Row) -> BoardSummary:
+    return BoardSummary(id=str(row["id"]), name=str(row["name"]), position=int(row["position"]))
 
 
 class BoardRepository:
@@ -32,6 +36,9 @@ class BoardRepository:
             (user_id, username, _utc_now()),
         )
         return user_id
+
+    def _get_or_create_user_id(self, username: str) -> str:
+        return self._get_user_id(username) or self._create_user(username)
 
     # ----------------------------------------------------------------- boards
     def _get_first_board_id(self, user_id: str) -> str | None:
@@ -71,9 +78,7 @@ class BoardRepository:
         return board_id
 
     def ensure_user_board(self, username: str) -> str:
-        user_id = self._get_user_id(username)
-        if user_id is None:
-            user_id = self._create_user(username)
+        user_id = self._get_or_create_user_id(username)
         board_id = self._get_first_board_id(user_id)
         if board_id is None:
             board_id = self._insert_board(user_id, "My Board", seed_columns=False)
@@ -86,21 +91,16 @@ class BoardRepository:
             "SELECT id, name, position FROM boards WHERE user_id = ? ORDER BY position ASC, created_at ASC",
             (user_id,),
         ).fetchall()
-        return [
-            BoardSummary(id=str(row["id"]), name=str(row["name"]), position=int(row["position"]))
-            for row in rows
-        ]
+        return [_row_to_summary(row) for row in rows]
 
     def create_board(self, username: str, name: str) -> BoardSummary:
-        user_id = self._get_user_id(username)
-        if user_id is None:
-            user_id = self._create_user(username)
+        user_id = self._get_or_create_user_id(username)
         board_id = self._insert_board(user_id, name, seed_columns=True)
         row = self.connection.execute(
             "SELECT id, name, position FROM boards WHERE id = ?",
             (board_id,),
         ).fetchone()
-        return BoardSummary(id=str(row["id"]), name=str(row["name"]), position=int(row["position"]))
+        return _row_to_summary(row)
 
     def owner_username(self, board_id: str) -> str | None:
         row = self.connection.execute(
